@@ -1,7 +1,58 @@
-import { useState } from 'react';
-import './App.css';
+import { useState } from 'react'
+import { inspectUrl, type ScanResult } from './scanner'
+import './App.css'
 
-type Finding={label:string;detail:string;points:number};
-function inspect(raw:string){const findings:Finding[]=[];let url:URL;try{url=new URL(raw.match(/^https?:\/\//)?raw:`https://${raw}`)}catch{return {score:100,findings:[{label:'URL inválida',detail:'O endereço não pôde ser interpretado.',points:100}]}}const host=url.hostname; const add=(label:string,detail:string,points:number)=>findings.push({label,detail,points});
-if(url.protocol==='http:')add('Conexão sem HTTPS','O conteúdo pode trafegar sem criptografia.',25);if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host))add('Endereço IP direto','Sites legítimos normalmente usam um domínio reconhecível.',25);if(host.includes('xn--'))add('Domínio internacionalizado','Punycode pode ser usado para imitar letras de outro domínio.',30);if(host.split('.').length>4)add('Muitos subdomínios','A parte confiável do endereço pode estar escondida à direita.',15);if(raw.includes('@'))add('Símbolo @','O trecho anterior ao @ pode disfarçar o destino real.',25);if(raw.length>100)add('URL muito longa','Endereços excessivamente longos dificultam a inspeção.',10);if(/login|verify|secure|update|account|wallet|premio|senha/i.test(url.pathname+url.search))add('Vocabulário de urgência','O caminho contém palavras comuns em campanhas de engenharia social.',15);return {score:Math.min(100,findings.reduce((n,f)=>n+f.points,0)),findings}}
-export default function App(){const [value,setValue]=useState('');const [result,setResult]=useState<ReturnType<typeof inspect>|null>(null);return <main><header><span>LINKSENTRY / URL INSPECTOR</span><h1>Confie menos.<br/>Inspecione melhor.</h1><p>Uma análise local e explicável de sinais comuns em links suspeitos.</p></header><section className="scanner"><label htmlFor="url">Cole um endereço</label><div><input id="url" value={value} onChange={e=>setValue(e.target.value)} placeholder="exemplo.com/conta"/><button onClick={()=>setResult(inspect(value))} disabled={!value}>Analisar</button></div></section>{result&&<section className="result"><div className="score"><strong>{result.score}</strong><span>/100 risco indicativo</span></div><div><h2>{result.findings.length?`${result.findings.length} sinais encontrados`:'Nenhum sinal básico encontrado'}</h2>{result.findings.map(f=><article key={f.label}><b>+{f.points} · {f.label}</b><p>{f.detail}</p></article>)}<small>Este resultado não garante que um site seja seguro ou malicioso. Não abra links que você não reconhece.</small></div></section>}</main>}
+const examples = [
+  { label: 'URL comum', value: 'github.com/paulo-santzs' },
+  { label: 'Link suspeito', value: 'http://conta-segura-login.example.com/verify-password' },
+  { label: 'Encurtador', value: 'https://bit.ly/oferta' },
+]
+
+export default function App() {
+  const [value, setValue] = useState('')
+  const [result, setResult] = useState<ScanResult | null>(null)
+
+  function analyze(nextValue = value) {
+    setValue(nextValue)
+    setResult(inspectUrl(nextValue))
+  }
+
+  return <main>
+    <header>
+      <span>LINKSENTRY / URL INSPECTOR</span>
+      <h1>Confie menos.<br />Inspecione melhor.</h1>
+      <p>Uma análise local e explicável de sinais comuns em links suspeitos. Nenhuma URL sai do seu navegador.</p>
+    </header>
+
+    <section className="scanner" aria-labelledby="scanner-title">
+      <label id="scanner-title" htmlFor="url">Cole um endereço</label>
+      <form onSubmit={(event) => { event.preventDefault(); analyze() }}>
+        <input id="url" value={value} onChange={(event) => setValue(event.target.value)} placeholder="exemplo.com/conta" autoComplete="off" spellCheck="false" />
+        <button type="submit" disabled={!value.trim()}>Analisar</button>
+      </form>
+      <div className="examples" aria-label="Exemplos para testar">
+        {examples.map((example) => <button type="button" key={example.label} onClick={() => analyze(example.value)}>{example.label}</button>)}
+      </div>
+    </section>
+
+    {result && <section className={`result level-${result.level}`} aria-live="polite">
+      <div className="score">
+        <span className="eyebrow">RISCO {result.level.toUpperCase()}</span>
+        <strong>{result.score}</strong>
+        <span>/100 pontos indicativos</span>
+        {result.hostname && <code>{result.hostname}</code>}
+      </div>
+      <div className="findings">
+        <h2>{result.findings.length ? `${result.findings.length} ${result.findings.length === 1 ? 'sinal encontrado' : 'sinais encontrados'}` : 'Nenhum sinal básico encontrado'}</h2>
+        {result.findings.length === 0 && <p className="empty">Isso não prova que o endereço é seguro. Confira o domínio e o contexto antes de prosseguir.</p>}
+        {result.findings.map((finding) => <article key={finding.id}>
+          <b>+{finding.points} · {finding.label}</b>
+          <p>{finding.detail}</p>
+        </article>)}
+        <aside><b>Importante</b> Esta ferramenta usa heurísticas educativas, não reputação em tempo real. Não abra links que você não reconhece.</aside>
+      </div>
+    </section>}
+
+    <footer><span>PROCESSAMENTO 100% LOCAL</span><a href="https://github.com/paulo-santzs/linksentry" target="_blank" rel="noreferrer">Ver código no GitHub ↗</a></footer>
+  </main>
+}
