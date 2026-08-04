@@ -8,8 +8,13 @@ $project = $PSScriptRoot
 & $git -C $project push origin main
 if ($LASTEXITCODE -ne 0) { throw 'Não foi possível enviar o projeto ao GitHub.' }
 
-& $gh api repos/paulo-santzs/linksentry/pages *> $null
-if ($LASTEXITCODE -eq 0) {
+$previousErrorPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+& $gh api --silent repos/paulo-santzs/linksentry/pages 2> $null
+$pagesExists = $LASTEXITCODE -eq 0
+$ErrorActionPreference = $previousErrorPreference
+
+if ($pagesExists) {
   & $gh api --method PUT repos/paulo-santzs/linksentry/pages -f build_type=workflow *> $null
 } else {
   & $gh api --method POST repos/paulo-santzs/linksentry/pages -f build_type=workflow *> $null
