@@ -19,6 +19,17 @@ if ($pagesExists) {
 } else {
   & $gh api --method POST repos/paulo-santzs/linksentry/pages -f build_type=workflow *> $null
 }
+if ($LASTEXITCODE -ne 0) { throw 'Não foi possível ativar o GitHub Pages.' }
 
-Write-Host 'LinkSentry enviado. A publicação será concluída em alguns minutos:'
+& $gh workflow run pages.yml --repo paulo-santzs/linksentry --ref main
+if ($LASTEXITCODE -ne 0) { throw 'Não foi possível iniciar a publicação.' }
+
+Start-Sleep -Seconds 3
+$runId = & $gh run list --repo paulo-santzs/linksentry --workflow pages.yml --limit 1 --json databaseId --jq '.[0].databaseId'
+if (-not $runId) { throw 'A publicação foi solicitada, mas ainda não apareceu no GitHub Actions.' }
+
+& $gh run watch $runId --repo paulo-santzs/linksentry --exit-status
+if ($LASTEXITCODE -ne 0) { throw 'O GitHub Actions encontrou uma falha durante a publicação.' }
+
+Write-Host 'LinkSentry publicado com sucesso:'
 Write-Host 'https://paulo-santzs.github.io/linksentry/'
