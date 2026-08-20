@@ -27,6 +27,10 @@ npm run check
 
 O comando executa lint, testes automatizados e build de produção.
 
+## Como interpretar o resultado
+
+Use a pontuação como uma lista de perguntas, não como um veredito. Abra o domínio em uma aba separada, confira o contexto da mensagem e procure a fonte oficial por um canal conhecido. Um endereço com pontuação baixa ainda pode ser fraudulento; um endereço com pontuação alta merece investigação antes de qualquer clique.
+
 ## Limitações
 
 O LinkSentry é uma ferramenta educativa baseada em heurísticas. Ele não consulta reputação de domínio, não acessa o endereço analisado e não substitui as proteções do navegador ou uma investigação humana.
